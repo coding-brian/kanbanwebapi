@@ -1,3 +1,5 @@
+using KanbanWebApi.Repository;
+using KanbanWebApi.Service;
 using Npgsql;
 using System.Data;
 
@@ -13,8 +15,14 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 // 註冊 IDbConnection，讓它每次請求時都會產生新的連線
 builder.Services.AddScoped<IDbConnection>(sp => new NpgsqlConnection(connectionString));
 
+builder.Services.AddScoped<BoardService>();
+
+builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
+
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
+
+Dapper.DefaultTypeMap.MatchNamesWithUnderscores = true;
 
 var app = builder.Build();
 
