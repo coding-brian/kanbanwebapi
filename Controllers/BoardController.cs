@@ -1,4 +1,5 @@
-﻿using KanbanWebApi.Service;
+﻿using KanbanWebApi.Dto;
+using KanbanWebApi.Service;
 using Microsoft.AspNetCore.Mvc;
 
 namespace KanbanWebApi.Controllers
@@ -12,6 +13,12 @@ namespace KanbanWebApi.Controllers
         public async Task<IActionResult> GetAsync()
         {
             return Ok(await _boardService.GetListAsync());
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> CreateAsync([FromBody] CreateBoardDto dto)
+        {
+            return Ok(await _boardService.CreateAsync(dto));
         }
     }
 }

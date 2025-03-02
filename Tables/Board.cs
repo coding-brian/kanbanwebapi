@@ -8,5 +8,9 @@ namespace KanbanWebApi.Tables
         [Column("name")]
         [Required]
         public string Name { get; set; }
+
+        [Column("member_id")]
+        [Required]
+        public Guid MemberId { get; set; }
     }
 }

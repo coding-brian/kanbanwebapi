@@ -19,6 +19,9 @@ builder.Services.AddScoped<BoardService>();
 
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 
+// µù¥U Mapper
+builder.Services.AddAutoMapper(typeof(Program));
+
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
