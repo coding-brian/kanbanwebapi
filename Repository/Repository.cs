@@ -5,7 +5,7 @@ namespace KanbanWebApi.Repository
 {
     public class Repository<T>(IDbConnection connection) : IRepository<T>
     {
-        private readonly IDbConnection _connection = connection;
+        public readonly IDbConnection _connection = connection;
 
         public async Task<List<T>> GetListAsync(string sql, object parameters)
         {
@@ -21,21 +21,21 @@ namespace KanbanWebApi.Repository
             return await _connection.QueryFirstOrDefaultAsync<T>(sql);
         }
 
-        public async Task<int> InsertAsync(string sql, object parameters)
+        public async Task<int> InsertAsync(string sql, object parameters, IDbTransaction transaction = null)
+        {
+            if (parameters != null) return await _connection.ExecuteAsync(sql, parameters, transaction);
+
+            return await _connection.ExecuteAsync(sql, transaction);
+        }
+
+        public async Task<int> UpdateAsync(string sql, object parameters, IDbTransaction transaction = null)
         {
             if (parameters != null) return await _connection.ExecuteAsync(sql, parameters);
 
             return await _connection.ExecuteAsync(sql);
         }
 
-        public async Task<int> UpdateAsync(string sql, object parameters)
-        {
-            if (parameters != null) return await _connection.ExecuteAsync(sql, parameters);
-
-            return await _connection.ExecuteAsync(sql);
-        }
-
-        public async Task<int> DeleteAsync(string sql, object parameters)
+        public async Task<int> DeleteAsync(string sql, object parameters, IDbTransaction transaction = null)
         {
             if (parameters != null) return await _connection.ExecuteAsync(sql, parameters);
 
@@ -49,10 +49,10 @@ namespace KanbanWebApi.Repository
 
         Task<T> GetAsync(string sql, object parameters);
 
-        Task<int> InsertAsync(string sql, object parameters);
+        Task<int> InsertAsync(string sql, object parameters, IDbTransaction transaction = null);
 
-        Task<int> UpdateAsync(string sql, object parameters);
+        Task<int> UpdateAsync(string sql, object parameters, IDbTransaction transaction = null);
 
-        Task<int> DeleteAsync(string sql, object parameters);
+        Task<int> DeleteAsync(string sql, object parameters, IDbTransaction transaction = null);
     }
 }

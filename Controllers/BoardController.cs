@@ -10,15 +10,28 @@ namespace KanbanWebApi.Controllers
     {
         private readonly BoardService _boardService = boardService;
 
-        public async Task<IActionResult> GetAsync()
+        [HttpGet]
+        public async Task<IActionResult> GetListAsync()
         {
             return Ok(await _boardService.GetListAsync());
+        }
+
+        [HttpGet("{id:guid}")]
+        public async Task<IActionResult> GetAsync(Guid id)
+        {
+            return Ok(await _boardService.GetAsync(id));
         }
 
         [HttpPost]
         public async Task<IActionResult> CreateAsync([FromBody] CreateBoardDto dto)
         {
             return Ok(await _boardService.CreateAsync(dto));
+        }
+
+        [HttpDelete("{id:guid}")]
+        public async Task<IActionResult> DeleteAsync(Guid id)
+        {
+            return Ok(await _boardService.DeleteAsync(id));
         }
     }
 }

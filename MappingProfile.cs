@@ -9,6 +9,9 @@ namespace KanbanWebApi
         public MappingProfile()
         {
             CreateMap<CreateBoardDto, Board>();
+            CreateMap<Board, BoardDto>();
+
+            CreateMap<CreatColumnDto, Column>();
         }
     }
 }

@@ -1,3 +1,4 @@
+using KanbanWebApi;
 using KanbanWebApi.Repository;
 using KanbanWebApi.Service;
 using Npgsql;
@@ -18,6 +19,8 @@ builder.Services.AddScoped<IDbConnection>(sp => new NpgsqlConnection(connectionS
 builder.Services.AddScoped<BoardService>();
 
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
+
+builder.Services.AddScoped(typeof(ISqlGenerator<>), typeof(SqlGenerator<>));
 
 // µù¥U Mapper
 builder.Services.AddAutoMapper(typeof(Program));
