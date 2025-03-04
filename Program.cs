@@ -30,6 +30,32 @@ builder.Services.AddOpenApi();
 
 Dapper.DefaultTypeMap.MatchNamesWithUnderscores = true;
 
+var corsPolicyName = "MyCorsPolicy";
+builder.Services.AddCors(options =>
+{
+    if (builder.Environment.IsDevelopment())
+    {
+        options.AddPolicy(corsPolicyName, policy =>
+        {
+            policy.AllowAnyOrigin() // 允許的來源
+                  .AllowAnyHeader() // 允許的標頭
+                  .AllowAnyMethod(); // 允許的 HTTP 方法 (GET, POST, PUT, DELETE 等)
+        });
+    }
+    else
+    {
+        var cors = builder.Configuration.GetSection("Cors").Get<string[]>();
+
+        options.AddPolicy(corsPolicyName, policy =>
+        {
+            policy.WithOrigins(cors) // 允許的來源
+                  .AllowAnyHeader() // 允許的標頭
+                  .AllowAnyMethod() // 允許的 HTTP 方法 (GET, POST, PUT, DELETE 等)
+                  .AllowCredentials(); // 如果需要攜帶 Cookie 或憑證
+        });
+    }
+});
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -39,6 +65,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseCors(corsPolicyName);
 
 app.UseAuthorization();
 

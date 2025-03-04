@@ -12,6 +12,6 @@ namespace KanbanWebApi.Tables
         public string Name { get; set; }
 
         [Column("is_active")]
-        public Boolean IsActive { get; set; }
+        public bool IsActive { get; set; }
     }
 }

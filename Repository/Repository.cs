@@ -18,7 +18,7 @@ namespace KanbanWebApi.Repository
         {
             if (parameters != null) return await _connection.QueryFirstOrDefaultAsync<T>(sql, parameters);
 
-            return await _connection.QueryFirstOrDefaultAsync<T>(sql);
+            return await _connection.QueryFirstOrDefaultAsync<T>(sql, parameters);
         }
 
         public async Task<int> InsertAsync(string sql, object parameters, IDbTransaction transaction = null)
@@ -30,16 +30,16 @@ namespace KanbanWebApi.Repository
 
         public async Task<int> UpdateAsync(string sql, object parameters, IDbTransaction transaction = null)
         {
-            if (parameters != null) return await _connection.ExecuteAsync(sql, parameters);
+            if (parameters != null) return await _connection.ExecuteAsync(sql, parameters, transaction);
 
-            return await _connection.ExecuteAsync(sql);
+            return await _connection.ExecuteAsync(sql, transaction);
         }
 
         public async Task<int> DeleteAsync(string sql, object parameters, IDbTransaction transaction = null)
         {
-            if (parameters != null) return await _connection.ExecuteAsync(sql, parameters);
+            if (parameters != null) return await _connection.ExecuteAsync(sql, parameters, transaction);
 
-            return await _connection.ExecuteAsync(sql);
+            return await _connection.ExecuteAsync(sql, transaction);
         }
     }
 

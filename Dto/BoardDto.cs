@@ -1,13 +1,11 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
-
-namespace KanbanWebApi.Dto
+﻿namespace KanbanWebApi.Dto
 {
-    public class BoardDto
+    public class BoardDto : EntityDto
     {
-        [Column("name")]
         public string Name { get; set; }
 
-        [Column("member_id")]
         public Guid MemberId { get; set; }
+
+        public List<ColumnDto> Columns { get; set; } = new();
     }
 }

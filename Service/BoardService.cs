@@ -17,6 +17,7 @@ namespace KanbanWebApi.Service
                               IDbConnection connection)
     {
         private readonly IRepository<Board> _boardRepository = boardRepository;
+
         private readonly IRepository<Column> _columnRepository = columnRepository;
 
         private readonly IMapper _mapper = mapper;
@@ -35,13 +36,29 @@ namespace KanbanWebApi.Service
         {
             var sqlBuilder = new SqlBuilder();
 
-            var columes = typeof(BoardDto).GetProperties().Select(x => x.GetCustomAttribute<ColumnAttribute>()?.Name ?? x.Name);
+            var selectColumns = typeof(BoardDto).GetProperties().Select(x => x.Name);
 
-            var template = sqlBuilder.AddTemplate($@"SELECT {string.Join(",", columes)} FROM board /** where **/");
+            var columns = typeof(Board).GetProperties().Where(x => selectColumns.Contains(x.Name)).Select(x => x.GetCustomAttribute<ColumnAttribute>()?.Name ?? x.Name);
 
-            sqlBuilder.Where("id = @Id", new { Id = id });
+            var template = sqlBuilder.AddTemplate(@"
+                                                    SELECT b.id,b.name,b.member_id,
+                                                           c.id,c.board_id,c.name,c.is_active
+                                                    FROM board b
+                                                    /**leftjoin**/
+                                                    /**where**/");
 
-            return _mapper.Map<BoardDto>(await _boardRepository.GetAsync(template.RawSql, template.Parameters));
+            sqlBuilder.Where("b.id = @id", new { Id = id });
+
+            sqlBuilder.LeftJoin(@"""column"" c on b.id = c.board_id");
+
+            return (await _connection.QueryAsync<Board, Column, BoardDto>(template.RawSql, (board, column) =>
+            {
+                var dto = _mapper.Map<BoardDto>(board);
+
+                if (column != null) dto.Columns.Add(_mapper.Map<ColumnDto>(column));
+
+                return dto;
+            }, template.Parameters)).FirstOrDefault();
         }
 
         public async Task<bool> CreateAsync(CreateBoardDto dto)
@@ -75,7 +92,7 @@ namespace KanbanWebApi.Service
                         columns.Add(column);
                     }
 
-                    await _columnRepository.InsertAsync(_columnSqlGenerator.GenerateInsertSQL(null), columns);
+                    await _columnRepository.InsertAsync(_columnSqlGenerator.GenerateInsertSQL<CreateBoardDto>(null), columns);
                 }
 
                 await _boardRepository.InsertAsync(_boardSqlGenerator.GenerateInsertSQL(board), board);
@@ -92,15 +109,90 @@ namespace KanbanWebApi.Service
             }
         }
 
-        public async Task<int> DeleteAsync(Guid id)
+        public async Task<bool> DeleteAsync(Guid id)
         {
-            var sqlBuilder = new SqlBuilder();
+            _connection.Open();
+            using var transaction = _connection.BeginTransaction();
 
-            var template = sqlBuilder.AddTemplate($@"DELETE FROM board /** where **/");
+            try
+            {
+                var sqlBuilder = new SqlBuilder();
 
-            sqlBuilder.Where("id = @Id", new { Id = id });
+                var template = sqlBuilder.AddTemplate($@"DELETE FROM board /** where **/");
 
-            return await _boardRepository.DeleteAsync(template.RawSql, template.Parameters);
+                sqlBuilder.Where("id = @Id", new { Id = id });
+
+                transaction.Commit();
+
+                await _boardRepository.DeleteAsync(template.RawSql, template.Parameters, transaction);
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                transaction.Rollback();
+
+                return false;
+            }
+        }
+
+        public async Task<bool> UpdateAsync(UpdateBoardDto dto)
+        {
+            _connection.Open();
+            using var transaction = _connection.BeginTransaction();
+
+            try
+            {
+                var updateBoard = _mapper.Map<Board>(dto);
+
+                var boardSqlBuilder = new SqlBuilder();
+
+                var selectColumns = typeof(UpdateBoardDto).GetProperties().Select(x => x.Name);
+
+                var properties = typeof(Board).GetProperties().Where(x => x.Name != "Id").Where(x => selectColumns.Contains(x.Name));
+
+                var template = boardSqlBuilder.AddTemplate($@"UPDATE board  /**set**/  /**where**/");
+
+                foreach (var propertyName in properties.Select(x => x.Name))
+                {
+                    boardSqlBuilder.Set($"{propertyName}=@{propertyName}");
+                }
+
+                boardSqlBuilder.Where("id = @id", new { dto.Id });
+
+                await _boardRepository.UpdateAsync(template.RawSql, dto, transaction);
+
+                if (dto.Columns != null && dto.Columns.Count > 0)
+                {
+                    var columns = _mapper.Map<List<Column>>(dto.Columns);
+
+                    foreach (var column in columns)
+                    {
+                        column.ModificationTime = DateTime.Now;
+                    }
+
+                    var columnSqlBuilder = new SqlBuilder();
+                    var columnTemplate = columnSqlBuilder.AddTemplate($@"UPDATE ""column""  /**set**/  /**where**/");
+
+                    columnSqlBuilder.Where("id = @id");
+
+                    columnSqlBuilder.Set("name = @Name");
+
+                    columnSqlBuilder.Set("modification_time = @ModificationTime");
+
+                    await _columnRepository.UpdateAsync(columnTemplate.RawSql, columns, transaction);
+                }
+
+                transaction.Commit();
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                transaction.Rollback();
+
+                return false;
+            }
         }
     }
 }

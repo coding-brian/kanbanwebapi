@@ -12,6 +12,9 @@ namespace KanbanWebApi
             CreateMap<Board, BoardDto>();
 
             CreateMap<CreatColumnDto, Column>();
+            CreateMap<UpdateBoardDto, Board>();
+            CreateMap<UpdateColumnDto, Column>();
+            CreateMap<Column, ColumnDto>();
         }
     }
 }
