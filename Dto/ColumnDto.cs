@@ -7,5 +7,7 @@
         public string Name { get; set; }
 
         public bool IsActive { get; set; }
+
+        public List<TaskDto> Tasks { get; set; } = [];
     }
 }

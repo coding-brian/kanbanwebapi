@@ -15,6 +15,7 @@ namespace KanbanWebApi
             CreateMap<UpdateBoardDto, Board>();
             CreateMap<UpdateColumnDto, Column>();
             CreateMap<Column, ColumnDto>();
+            CreateMap<TaskDto, Tables.Task>();
         }
     }
 }

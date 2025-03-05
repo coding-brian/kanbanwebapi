@@ -48,8 +48,10 @@ namespace KanbanWebApi.Service
                                                     /**where**/");
 
             sqlBuilder.Where("b.id = @id", new { Id = id });
+            sqlBuilder.Where("b.entity_status = true");
 
             sqlBuilder.LeftJoin(@"""column"" c on b.id = c.board_id");
+            sqlBuilder.LeftJoin(@"task t on t.column_id = c.id");
 
             return (await _connection.QueryAsync<Board, Column, BoardDto>(template.RawSql, (board, column) =>
             {
