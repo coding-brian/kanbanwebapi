@@ -17,6 +17,7 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddScoped<IDbConnection>(sp => new NpgsqlConnection(connectionString));
 
 builder.Services.AddScoped<BoardService>();
+builder.Services.AddScoped<TaskService>();
 
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 

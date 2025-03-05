@@ -3,6 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace KanbanWebApi.Tables
 {
+    [Table("board")]
     public class Board : Entity
     {
         [Column("name")]

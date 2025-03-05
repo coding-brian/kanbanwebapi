@@ -3,6 +3,7 @@ using Dapper;
 using KanbanWebApi.Dto;
 using KanbanWebApi.Repository;
 using KanbanWebApi.Tables;
+using Serilog;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Data;
 using System.Reflection;
@@ -53,11 +54,21 @@ namespace KanbanWebApi.Service
             sqlBuilder.LeftJoin(@"""column"" c on b.id = c.board_id");
             sqlBuilder.LeftJoin(@"task t on t.column_id = c.id");
 
-            return (await _connection.QueryAsync<Board, Column, BoardDto>(template.RawSql, (board, column) =>
+            return (await _connection.QueryAsync<Board, Column, Tables.Task, BoardDto>(template.RawSql, (board, column, task) =>
             {
                 var dto = _mapper.Map<BoardDto>(board);
 
-                if (column != null) dto.Columns.Add(_mapper.Map<ColumnDto>(column));
+                if (column != null)
+                {
+                    var columnDto = _mapper.Map<ColumnDto>(column);
+
+                    if (task != null)
+                    {
+                        columnDto.Tasks.Add(_mapper.Map<TaskDto>(task));
+                    }
+
+                    dto.Columns.Add(columnDto);
+                }
 
                 return dto;
             }, template.Parameters)).FirstOrDefault();
@@ -105,6 +116,8 @@ namespace KanbanWebApi.Service
             }
             catch (Exception ex)
             {
+                Log.Error(ex, "Error");
+
                 transaction.Rollback();
 
                 return false;
@@ -120,7 +133,7 @@ namespace KanbanWebApi.Service
             {
                 var sqlBuilder = new SqlBuilder();
 
-                var template = sqlBuilder.AddTemplate($@"DELETE FROM board /** where **/");
+                var template = sqlBuilder.AddTemplate($@"UPDATE board SET entity_status = false  /**where**/");
 
                 sqlBuilder.Where("id = @Id", new { Id = id });
 
@@ -132,6 +145,8 @@ namespace KanbanWebApi.Service
             }
             catch (Exception ex)
             {
+                Log.Error(ex, "Error");
+
                 transaction.Rollback();
 
                 return false;
@@ -191,6 +206,8 @@ namespace KanbanWebApi.Service
             }
             catch (Exception ex)
             {
+                Log.Error(ex, "Error");
+
                 transaction.Rollback();
 
                 return false;

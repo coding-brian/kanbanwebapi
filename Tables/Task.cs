@@ -8,6 +8,9 @@ namespace KanbanWebApi.Tables
         [Column("column_id")]
         public Guid ColumnId { get; set; }
 
+        [Column("board_id")]
+        public Guid BoardId { get; set; }
+
         [Column("title")]
         public string Title { get; set; }
 

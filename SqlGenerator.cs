@@ -9,7 +9,7 @@ namespace KanbanWebApi
 
         public List<string> Columns = typeof(T).GetProperties().Select(x => x.GetCustomAttribute<ColumnAttribute>()?.Name ?? x.Name).ToList();
 
-        private readonly string _tableName = typeof(T).Name.ToLower();
+        private readonly string _tableName = typeof(T).GetCustomAttribute<TableAttribute>().Name.ToLower();
 
         public string GenerateSelectSQL()
         {
