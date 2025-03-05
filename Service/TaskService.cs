@@ -60,6 +60,7 @@ namespace KanbanWebApi.Service
                     {
                         var subTask = _mapper.Map<SubTask>(subTaskDto);
                         subTask.Id = Guid.NewGuid();
+                        subTask.IsCompleted = false;
                         subTask.TaskId = task.Id;
                         subTask.EntityStatus = true;
                         subTask.CreationTime = DateTime.Now;

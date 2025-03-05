@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Dapper;
 using KanbanWebApi.Dto;
+using KanbanWebApi.Dto.SubTask;
 using KanbanWebApi.Repository;
 using KanbanWebApi.Tables;
 using Serilog;
@@ -43,7 +44,9 @@ namespace KanbanWebApi.Service
 
             var template = sqlBuilder.AddTemplate(@"
                                                     SELECT b.id,b.name,b.member_id,
-                                                           c.id,c.board_id,c.name,c.is_active
+                                                           c.id,c.board_id,c.name,c.is_active,
+                                                           t.id,t.title,t.column_id,t.board_id,
+                                                           st.id,st.title,st.is_completed,st.task_id
                                                     FROM board b
                                                     /**leftjoin**/
                                                     /**where**/");
@@ -53,25 +56,56 @@ namespace KanbanWebApi.Service
 
             sqlBuilder.LeftJoin(@"""column"" c on b.id = c.board_id");
             sqlBuilder.LeftJoin(@"task t on t.column_id = c.id");
+            sqlBuilder.LeftJoin(@"sub_task st on st.task_id = t.id");
 
-            return (await _connection.QueryAsync<Board, Column, Tables.Task, BoardDto>(template.RawSql, (board, column, task) =>
+            var boardDic = new Dictionary<Guid, BoardDto>();
+
+            return (await _connection.QueryAsync<Board, Column, Tables.Task, SubTask, BoardDto>(template.RawSql, (board, column, task, subTask) =>
             {
                 var dto = _mapper.Map<BoardDto>(board);
 
+                if (!boardDic.TryGetValue(dto.Id, out var existingBoard))
+                {
+                    existingBoard = dto;
+
+                    boardDic.Add(dto.Id, dto);
+                }
+
                 if (column != null)
                 {
-                    var columnDto = _mapper.Map<ColumnDto>(column);
+                    var existingColumn = existingBoard.Columns.FirstOrDefault(c => c.Id == column.Id);
+
+                    if (existingColumn == null)
+                    {
+                        existingColumn = _mapper.Map<ColumnDto>(column);
+                        existingBoard.Columns.Add(existingColumn);
+                    }
 
                     if (task != null)
                     {
-                        columnDto.Tasks.Add(_mapper.Map<TaskDto>(task));
-                    }
+                        var existingTask = existingColumn.Tasks.FirstOrDefault(t => t.Id == task.Id);
 
-                    dto.Columns.Add(columnDto);
+                        if (existingTask == null)
+                        {
+                            existingTask = _mapper.Map<TaskDto>(task);
+                            existingColumn.Tasks.Add(existingTask);
+                        }
+
+                        if (subTask != null)
+                        {
+                            var existingSubTask = existingTask.SubTasks.FirstOrDefault(x => x.Id == subTask.Id);
+
+                            if (existingSubTask == null)
+                            {
+                                existingSubTask = _mapper.Map<SubTaskDto>(subTask);
+                                existingTask.SubTasks.Add(existingSubTask);
+                            }
+                        }
+                    }
                 }
 
-                return dto;
-            }, template.Parameters)).FirstOrDefault();
+                return existingBoard;
+            }, template.Parameters)).Distinct().FirstOrDefault();
         }
 
         public async Task<bool> CreateAsync(CreateBoardDto dto)

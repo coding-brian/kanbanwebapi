@@ -10,5 +10,8 @@ namespace KanbanWebApi.Tables
 
         [Column("title")]
         public string Title { get; set; }
+
+        [Column("is_completed")]
+        public bool IsCompleted { get; set; }
     }
 }

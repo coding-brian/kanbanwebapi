@@ -1,4 +1,6 @@
-﻿namespace KanbanWebApi.Dto
+﻿using KanbanWebApi.Dto.SubTask;
+
+namespace KanbanWebApi.Dto
 {
     public class TaskDto : EntityDto
     {
@@ -7,5 +9,7 @@
         public string Title { get; set; }
 
         public string Description { get; set; }
+
+        public List<SubTaskDto> SubTasks { get; set; } = [];
     }
 }

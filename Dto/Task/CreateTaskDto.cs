@@ -1,4 +1,6 @@
-﻿namespace KanbanWebApi.Dto.Task
+﻿using KanbanWebApi.Dto.SubTask;
+
+namespace KanbanWebApi.Dto.Task
 {
     public class CreateTaskDto
     {
