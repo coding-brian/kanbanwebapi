@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Dapper;
 using KanbanWebApi.Dto;
+using KanbanWebApi.Dto.SubTask;
 using KanbanWebApi.Dto.Task;
 using KanbanWebApi.Repository;
 using KanbanWebApi.Tables;
@@ -32,16 +33,45 @@ namespace KanbanWebApi.Service
         {
             var sqlBuilder = new SqlBuilder();
 
-            var template = sqlBuilder.AddTemplate(@"SELECT * FROM Task /**where**/");
+            var template = sqlBuilder.AddTemplate(@"SELECT  t.id,t.column_id,t.board_id,t.title,t.description,
+                                                            st.id,st.task_id,st.title,st.is_completed
+                                                    FROM Task t
+                                                    /**leftjoin**/
+                                                    /**where**/");
 
-            sqlBuilder.Where("id=@id", new { id });
+            sqlBuilder.Where("t.id=@id", new { id });
 
-            return _mapper.Map<TaskDto>(await _repository.GetAsync(template.RawSql, template.Parameters));
+            sqlBuilder.LeftJoin("sub_task st on t.id = st.task_id");
+
+            var taskDic = new Dictionary<Guid, TaskDto>();
+
+            return (await _connection.QueryAsync<Tables.Task, SubTask, TaskDto>(template.RawSql, (task, subTask) =>
+            {
+                var dto = _mapper.Map<TaskDto>(task);
+
+                if (!taskDic.TryGetValue(task.Id, out var existingTask))
+                {
+                    existingTask = dto;
+
+                    taskDic.Add(task.Id, dto);
+                }
+
+                if (subTask != null)
+                {
+                    var existingSubTask = existingTask.SubTasks.FirstOrDefault(x => x.Id == subTask.Id);
+                    if (existingSubTask == null)
+                    {
+                        existingTask.SubTasks.Add(_mapper.Map<SubTaskDto>(subTask));
+                    }
+                }
+
+                return existingTask;
+            }, template.Parameters)).Distinct().FirstOrDefault();
         }
 
-        public async Task<bool> CreateAsync(CreateTaskDto dto)
+        public async Task<TaskDto> CreateAsync(CreateTaskDto dto)
         {
-            if (dto == null) return false;
+            if (dto == null) return null;
 
             _connection.Open();
             using var transaction = _connection.BeginTransaction();
@@ -74,13 +104,13 @@ namespace KanbanWebApi.Service
 
                 transaction.Commit();
 
-                return true;
+                return await GetAsync(task.Id);
             }
             catch (Exception ex)
             {
                 Log.Error(ex, "Error");
 
-                return false;
+                return null;
             }
         }
 
