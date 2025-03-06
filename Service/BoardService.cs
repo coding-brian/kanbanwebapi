@@ -54,9 +54,9 @@ namespace KanbanWebApi.Service
             sqlBuilder.Where("b.id = @id", new { Id = id });
             sqlBuilder.Where("b.entity_status = true");
 
-            sqlBuilder.LeftJoin(@"""column"" c on b.id = c.board_id");
-            sqlBuilder.LeftJoin(@"task t on t.column_id = c.id");
-            sqlBuilder.LeftJoin(@"sub_task st on st.task_id = t.id");
+            sqlBuilder.LeftJoin(@"(SELECT * FROM  ""column"" WHERE entity_status = true) c on b.id = c.board_id");
+            sqlBuilder.LeftJoin(@"( SELECT * FROM  task WHERE entity_status = true) t on t.column_id = c.id");
+            sqlBuilder.LeftJoin(@"( SELECT * FROM  sub_task  WHERE entity_status = true) st on st.task_id = t.id");
 
             var boardDic = new Dictionary<Guid, BoardDto>();
 
