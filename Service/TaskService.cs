@@ -42,7 +42,7 @@ namespace KanbanWebApi.Service
 
             sqlBuilder.Where("t.id=@id", new { id });
 
-            sqlBuilder.LeftJoin("sub_task st on t.id = st.task_id");
+            sqlBuilder.LeftJoin("(SELECT * FROM sub_task WHERE entity_status=true) st on t.id = st.task_id");
 
             var taskDic = new Dictionary<Guid, TaskDto>();
 
@@ -144,19 +144,21 @@ namespace KanbanWebApi.Service
 
                 await _repository.UpdateAsync(template.RawSql, task, transaction);
 
+                var subTasks = await _subTaskRepository.GetListAsync("SELECT * FROM sub_task WHERE task_id = @id and entity_status=true", new { id = task.Id });
+
                 if (dto.SubTasks.Count > 0)
                 {
-                    var subTasks = await _subTaskRepository.GetListAsync("SELECT * FROM sub_task WHERE id = ANY(@ids) ", new { ids = dto.SubTasks.Select(item => item.Id).ToArray() });
-
                     var updateSubTaskDtos = dto.SubTasks.Where(x => x.Id != null).ToList();
+
+                    var subTaskProperties = typeof(SubTask).GetProperties();
 
                     if (updateSubTaskDtos.Count > 0)
                     {
                         var updateSubTasks = subTasks.Where(x => updateSubTaskDtos.Select(y => y.Id).Contains(x.Id));
 
-                        var subTaskProperties = typeof(SubTask).GetProperties().Where(x => x.Name != "Id");
+                        var updateSubTaskProperties = subTaskProperties.Where(x => x.Name != "Id");
 
-                        var subTaskNames = subTaskProperties.Select(x => new { columnName = x.GetCustomAttribute<ColumnAttribute>()?.Name, parameteName = x.Name });
+                        var subTaskNames = updateSubTaskProperties.Select(x => new { columnName = x.GetCustomAttribute<ColumnAttribute>()?.Name, parameteName = x.Name });
 
                         var subTaskSqlBuilder = new SqlBuilder();
 
@@ -179,11 +181,9 @@ namespace KanbanWebApi.Service
 
                     var createSubTaskDtos = dto.SubTasks.Where(x => x.Id == null).ToList();
 
-                    if (createSubTaskDtos.Any())
+                    if (createSubTaskDtos.Count > 0)
                     {
-                        var createSubTaskProperties = typeof(SubTask).GetProperties();
-
-                        var createSubTaskNames = createSubTaskProperties.Select(x => new { columnName = x.GetCustomAttribute<ColumnAttribute>()?.Name, parameteName = x.Name });
+                        var createSubTaskNames = subTaskProperties.Select(x => new { columnName = x.GetCustomAttribute<ColumnAttribute>()?.Name, parameteName = x.Name });
 
                         var createSubTaskSqlBuilder = new SqlBuilder();
                         var createSubTaskTemplate =
@@ -199,6 +199,17 @@ namespace KanbanWebApi.Service
                         }
 
                         await _subTaskRepository.UpdateAsync(createSubTaskTemplate.RawSql, createSubTasks, transaction);
+                    }
+
+                    var redundants = subTasks.Where(x => !dto.SubTasks.Select(y => y.Id).Contains(x.Id)).ToList();
+
+                    if (redundants.Count > 0)
+                    {
+                        var removeSubTaskSqlBuilder = new SqlBuilder();
+
+                        var removeTemplate = removeSubTaskSqlBuilder.AddTemplate($@"UPDATE sub_task SET entity_status=false WHERE Id = @id");
+
+                        await _subTaskRepository.DeleteAsync(removeTemplate.RawSql, redundants, transaction);
                     }
                 }
 
