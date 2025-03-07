@@ -1,4 +1,6 @@
-﻿namespace KanbanWebApi.Dto
+﻿using KanbanWebApi.Dto.Task;
+
+namespace KanbanWebApi.Dto
 {
     public class ColumnDto : EntityDto
     {

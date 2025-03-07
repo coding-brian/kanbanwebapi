@@ -1,12 +1,13 @@
 ﻿using AutoMapper;
 using Dapper;
-using KanbanWebApi.Dto;
 using KanbanWebApi.Dto.SubTask;
 using KanbanWebApi.Dto.Task;
 using KanbanWebApi.Repository;
 using KanbanWebApi.Tables;
 using Serilog;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Data;
+using System.Reflection;
 
 namespace KanbanWebApi.Service
 {
@@ -109,6 +110,107 @@ namespace KanbanWebApi.Service
             catch (Exception ex)
             {
                 Log.Error(ex, "Error");
+
+                return null;
+            }
+        }
+
+        public async Task<TaskDto> UpdateAsync(UpdateTaskDto dto)
+        {
+            if (dto == null) return null;
+
+            _connection.Open();
+            using var transaction = _connection.BeginTransaction();
+
+            try
+            {
+                var task = await _repository.GetAsync("SELECT * FROM Task WHERE id=@id", new { id = dto.Id });
+
+                _mapper.Map(dto, task);
+
+                task.ModificationTime = DateTime.Now;
+
+                var properties = typeof(Tables.Task).GetProperties().Where(x => x.Name != "Id");
+
+                var sqlBuilder = new SqlBuilder();
+
+                var template = sqlBuilder.AddTemplate($@"UPDATE task /**set**/  /**where**/");
+
+                sqlBuilder.Where("id=@id", new { dto.Id });
+
+                var names = properties.Select(x => new { columnName = x.GetCustomAttribute<ColumnAttribute>()?.Name, parameteName = x.Name });
+
+                sqlBuilder.Set($"{string.Join(",", names.Select(x => $@"{x.columnName}=@{x.parameteName}"))}");
+
+                await _repository.UpdateAsync(template.RawSql, task, transaction);
+
+                if (dto.SubTasks.Count > 0)
+                {
+                    var subTasks = await _subTaskRepository.GetListAsync("SELECT * FROM sub_task WHERE id = ANY(@ids) ", new { ids = dto.SubTasks.Select(item => item.Id).ToArray() });
+
+                    var updateSubTaskDtos = dto.SubTasks.Where(x => x.Id != null).ToList();
+
+                    if (updateSubTaskDtos.Count > 0)
+                    {
+                        var updateSubTasks = subTasks.Where(x => updateSubTaskDtos.Select(y => y.Id).Contains(x.Id));
+
+                        var subTaskProperties = typeof(SubTask).GetProperties().Where(x => x.Name != "Id");
+
+                        var subTaskNames = subTaskProperties.Select(x => new { columnName = x.GetCustomAttribute<ColumnAttribute>()?.Name, parameteName = x.Name });
+
+                        var subTaskSqlBuilder = new SqlBuilder();
+
+                        var subTaskTemplate = subTaskSqlBuilder.AddTemplate($@"UPDATE sub_task  /**set**/  /**where**/");
+
+                        foreach (var updateSubTask in updateSubTasks)
+                        {
+                            var updateSubTaskDto = updateSubTaskDtos.First(x => x.Id == updateSubTask.Id);
+
+                            _mapper.Map(updateSubTaskDto, updateSubTask);
+
+                            updateSubTask.ModificationTime = DateTime.Now;
+                        }
+
+                        subTaskSqlBuilder.Where("id=@id");
+                        subTaskSqlBuilder.Set($"{string.Join(",", subTaskNames.Select(x => $@"{x.columnName}=@{x.parameteName}"))}");
+
+                        await _subTaskRepository.UpdateAsync(subTaskTemplate.RawSql, updateSubTasks, transaction);
+                    }
+
+                    var createSubTaskDtos = dto.SubTasks.Where(x => x.Id == null).ToList();
+
+                    if (createSubTaskDtos.Any())
+                    {
+                        var createSubTaskProperties = typeof(SubTask).GetProperties();
+
+                        var createSubTaskNames = createSubTaskProperties.Select(x => new { columnName = x.GetCustomAttribute<ColumnAttribute>()?.Name, parameteName = x.Name });
+
+                        var createSubTaskSqlBuilder = new SqlBuilder();
+                        var createSubTaskTemplate =
+                            sqlBuilder.AddTemplate($@"INSERT INTO sub_task ({string.Join(",", createSubTaskNames.Select(x => x.columnName))})  VALUES ({string.Join(",", createSubTaskNames.Select(x => $"@{x.parameteName}"))})");
+
+                        var createSubTasks = _mapper.Map<List<SubTask>>(createSubTaskDtos);
+
+                        foreach (var createSubTask in createSubTasks)
+                        {
+                            createSubTask.Id = Guid.NewGuid();
+                            createSubTask.CreationTime = DateTime.Now;
+                            createSubTask.EntityStatus = true;
+                        }
+
+                        await _subTaskRepository.UpdateAsync(createSubTaskTemplate.RawSql, createSubTasks, transaction);
+                    }
+                }
+
+                transaction.Commit();
+
+                return await GetAsync(dto.Id);
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Error");
+
+                transaction.Rollback();
 
                 return null;
             }

@@ -2,6 +2,7 @@
 using Dapper;
 using KanbanWebApi.Dto;
 using KanbanWebApi.Dto.SubTask;
+using KanbanWebApi.Dto.Task;
 using KanbanWebApi.Repository;
 using KanbanWebApi.Tables;
 using Serilog;

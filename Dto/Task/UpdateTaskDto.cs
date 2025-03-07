@@ -1,8 +1,8 @@
 ﻿using KanbanWebApi.Dto.SubTask;
 
-namespace KanbanWebApi.Dto
+namespace KanbanWebApi.Dto.Task
 {
-    public class TaskDto : EntityDto
+    public class UpdateTaskDto : EntityDto
     {
         public Guid ColumnId { get; set; }
 
@@ -10,6 +10,6 @@ namespace KanbanWebApi.Dto
 
         public string Description { get; set; }
 
-        public List<SubTaskDto> SubTasks { get; set; } = [];
+        public List<UpdateSubTaskDto> SubTasks { get; set; } = [];
     }
 }

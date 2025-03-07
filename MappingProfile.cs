@@ -25,6 +25,8 @@ namespace KanbanWebApi
             CreateMap<CreateSubTaskDto, SubTask>();
             CreateMap<SubTaskDto, SubTask>();
             CreateMap<SubTask, SubTaskDto>();
+            CreateMap<UpdateTaskDto, Tables.Task>();
+            CreateMap<UpdateSubTaskDto, SubTask>();
         }
     }
 }

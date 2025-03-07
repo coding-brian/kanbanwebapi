@@ -27,5 +27,11 @@ namespace KanbanWebApi.Controllers
         {
             return Ok(await _taskService.DeleteAsync(id));
         }
+
+        [HttpPut]
+        public async Task<IActionResult> UpdateAsync([FromBody] UpdateTaskDto dto)
+        {
+            return Ok(await _taskService.UpdateAsync(dto));
+        }
     }
 }
