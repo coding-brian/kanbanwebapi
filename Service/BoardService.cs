@@ -124,11 +124,11 @@ namespace KanbanWebApi.Service
                 board.EntityStatus = true;
                 board.CreationTime = DateTime.Now;
 
-                if (dto.Colums != null && dto.Colums.Count > 0)
+                if (dto.Columns != null && dto.Columns.Count > 0)
                 {
                     var columns = new List<Column>();
 
-                    foreach (var columnDto in dto.Colums)
+                    foreach (var columnDto in dto.Columns)
                     {
                         var column = _mapper.Map<Column>(columnDto);
                         column.Id = Guid.NewGuid();

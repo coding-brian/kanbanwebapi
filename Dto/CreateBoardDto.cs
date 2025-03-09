@@ -6,6 +6,6 @@
 
         public Guid? MemberId { get; set; }
 
-        public IList<CreatColumnDto> Colums { get; set; }
+        public IList<CreatColumnDto> Columns { get; set; }
     }
 }
