@@ -13,7 +13,7 @@ namespace KanbanWebApi
 
         public string GenerateSelectSQL()
         {
-            var sql = @$"SELECT {string.Join(",", Columns)} FROM {_tableName}";
+            var sql = @$"SELECT {string.Join(",", Columns)} FROM {_tableName} WHERE entity_status=true";
 
             return sql;
         }
