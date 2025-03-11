@@ -18,6 +18,7 @@ builder.Services.AddScoped<IDbConnection>(sp => new NpgsqlConnection(connectionS
 
 builder.Services.AddScoped<BoardService>();
 builder.Services.AddScoped<TaskService>();
+builder.Services.AddScoped<ColumnService>();
 
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 
