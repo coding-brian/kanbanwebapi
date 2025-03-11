@@ -98,10 +98,10 @@ namespace KanbanWebApi.Service
 
                         subTasks.Add(subTask);
                     }
-                    await _subTaskRepository.InsertAsync(_subTaskSqlGenerator.GenerateInsertSQL<CreateTaskDto>(null), subTasks, transaction);
+                    await _subTaskRepository.InsertAsync(_subTaskSqlGenerator.GenerateInsertSQL(), subTasks, transaction);
                 }
 
-                await _repository.InsertAsync(_sqlGenerator.GenerateInsertSQL(task), task, transaction);
+                await _repository.InsertAsync(_sqlGenerator.GenerateInsertSQL(), task, transaction);
 
                 transaction.Commit();
 

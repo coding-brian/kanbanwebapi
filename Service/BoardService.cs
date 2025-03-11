@@ -32,7 +32,7 @@ namespace KanbanWebApi.Service
 
         public async Task<List<BoardDto>> GetListAsync()
         {
-            return _mapper.Map<List<BoardDto>>(await _boardRepository.GetListAsync(_boardSqlGenerator.GenerateSelectSQL(), null));
+            return _mapper.Map<List<BoardDto>>(await _boardRepository.GetListAsync(_boardSqlGenerator.GenerateSelectSQL(null), null));
         }
 
         public async Task<BoardDto> GetAsync(Guid id)
@@ -140,10 +140,10 @@ namespace KanbanWebApi.Service
                         columns.Add(column);
                     }
 
-                    await _columnRepository.InsertAsync(_columnSqlGenerator.GenerateInsertSQL<CreateBoardDto>(null), columns);
+                    await _columnRepository.InsertAsync(_columnSqlGenerator.GenerateInsertSQL(), columns, transaction);
                 }
 
-                await _boardRepository.InsertAsync(_boardSqlGenerator.GenerateInsertSQL(board), board);
+                await _boardRepository.InsertAsync(_boardSqlGenerator.GenerateInsertSQL(), board, transaction);
 
                 transaction.Commit();
 
@@ -195,24 +195,12 @@ namespace KanbanWebApi.Service
 
             try
             {
-                var updateBoard = _mapper.Map<Board>(dto);
+                var board = await _boardRepository.GetAsync(_boardSqlGenerator.GenerateSelectSQL(dto.Id), dto);
+                _mapper.Map(dto, board);
 
-                var boardSqlBuilder = new SqlBuilder();
+                var sql = _boardSqlGenerator.GenerateUpdateSQL();
 
-                var selectColumns = typeof(UpdateBoardDto).GetProperties().Select(x => x.Name);
-
-                var properties = typeof(Board).GetProperties().Where(x => x.Name != "Id").Where(x => selectColumns.Contains(x.Name));
-
-                var template = boardSqlBuilder.AddTemplate($@"UPDATE board  /**set**/  /**where**/");
-
-                foreach (var propertyName in properties.Select(x => x.Name))
-                {
-                    boardSqlBuilder.Set($"{propertyName}=@{propertyName}");
-                }
-
-                boardSqlBuilder.Where("id = @id", new { dto.Id });
-
-                await _boardRepository.UpdateAsync(template.RawSql, dto, transaction);
+                await _boardRepository.UpdateAsync(sql, board, transaction);
 
                 if (dto.Columns != null && dto.Columns.Count > 0)
                 {

@@ -1,53 +1,72 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+﻿using Dapper;
+using KanbanWebApi.Tables;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Reflection;
 
 namespace KanbanWebApi
 {
-    public class SqlGenerator<T> : ISqlGenerator<T>
+    public class SqlGenerator<T> : ISqlGenerator<T> where T : Entity
     {
-        private List<PropertyInfo> Properties = typeof(T).GetProperties().ToList();
+        public List<PropertyInfo> Properties = typeof(T).GetProperties().ToList();
 
-        public List<string> Columns = typeof(T).GetProperties().Select(x => x.GetCustomAttribute<ColumnAttribute>()?.Name ?? x.Name).ToList();
+        private List<ColumnPropertyNameMapping> _columnMappings = typeof(T).GetProperties()
+                                                                           .Select(x => new ColumnPropertyNameMapping { ColumnName = x.GetCustomAttribute<ColumnAttribute>()?.Name ?? x.Name, PropertyName = x.Name })
+                                                                           .ToList();
 
         private readonly string _tableName = typeof(T).GetCustomAttribute<TableAttribute>().Name.ToLower();
 
-        public string GenerateSelectSQL()
+        public string GenerateSelectSQL(Guid? id)
         {
-            var sql = @$"SELECT {string.Join(",", Columns)} FROM {_tableName} WHERE entity_status=true";
+            var sql = @$"SELECT * FROM ""{_tableName}"" /**where**/";
 
-            return sql;
-        }
+            var sqlBuilder = new SqlBuilder();
 
-        public string GenerateInsertSQL<TSource>(TSource source)
-        {
-            if (source != null)
+            sqlBuilder.Where("entity_status=true");
+
+            if (id.HasValue)
             {
-                Properties = Properties.Where(x => x.GetValue(source) != null).ToList();
+                sqlBuilder.Where("id = @id", new { id });
             }
 
-            Columns = Properties.Select(x => x.GetCustomAttribute<ColumnAttribute>()?.Name ?? x.Name).ToList();
+            var template = sqlBuilder.AddTemplate(sql);
 
-            return @$" INSERT INTO ""{_tableName}"" ({string.Join(",", Columns)}) VALUES ({string.Join(",", Properties.Select(x => $"@{x.Name}"))});";
+            return template.RawSql;
         }
 
-        public string GenerateUpdateSQL<TSource>(TSource source)
+        public string GenerateInsertSQL()
         {
-            var sourceNames = typeof(TSource).GetProperties().Select(x => x.Name);
+            return @$" INSERT INTO ""{_tableName}"" ({string.Join(",", _columnMappings.Select(c => c.ColumnName))}) VALUES ({string.Join(",", _columnMappings.Select(x => $"@{x.PropertyName}"))});";
+        }
 
-            Columns = Properties.Where(x => sourceNames.Contains(x.Name)).Select(x => x.GetCustomAttribute<ColumnAttribute>()?.Name ?? x.Name).ToList();
+        public string GenerateUpdateSQL()
+        {
+            var columns = _columnMappings.Where(c => c.ColumnName != "id").ToList();
 
-            var sql = @$"UPDATE {_tableName} SET {Columns.Select(x => $"{x}=@{x}")} WHERE 1=1";
+            var sql = @$"UPDATE ""{_tableName}"" SET {string.Join(",", columns.Select(x => $"{x.ColumnName}=@{x.PropertyName}"))} /**where**/";
 
-            return sql;
+            var sqlBuilder = new SqlBuilder();
+
+            sqlBuilder.Where("id = @id");
+
+            var template = sqlBuilder.AddTemplate(sql);
+
+            return template.RawSql;
         }
     }
 
     public interface ISqlGenerator<T>
     {
-        string GenerateInsertSQL<TSource>(TSource source);
+        string GenerateInsertSQL();
 
-        string GenerateSelectSQL();
+        string GenerateSelectSQL(Guid? id);
 
-        string GenerateUpdateSQL<TSource>(TSource source);
+        string GenerateUpdateSQL();
+    }
+
+    public class ColumnPropertyNameMapping()
+    {
+        public string ColumnName { get; set; }
+
+        public string PropertyName { get; set; }
     }
 }

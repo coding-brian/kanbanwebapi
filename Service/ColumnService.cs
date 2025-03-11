@@ -45,7 +45,7 @@ namespace KanbanWebApi.Service
                     columns.Add(column);
                 }
 
-                await _repository.InsertAsync(_sqlGenerator.GenerateInsertSQL<CreateColumnDto>(null), columns, transaction);
+                await _repository.InsertAsync(_sqlGenerator.GenerateInsertSQL(), columns, transaction);
 
                 transaction.Commit();
 
