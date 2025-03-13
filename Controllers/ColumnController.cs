@@ -1,4 +1,4 @@
-﻿using KanbanWebApi.Dto;
+﻿using KanbanWebApi.Dto.Column;
 using KanbanWebApi.Service;
 using Microsoft.AspNetCore.Mvc;
 
@@ -10,10 +10,10 @@ namespace KanbanWebApi.Controllers
     {
         private readonly ColumnService _columnService = columnService;
 
-        [HttpPost]
-        public async Task<IActionResult> CreateAsync([FromBody] IList<CreateColumnDto> dto)
+        [HttpPut("{id:guid}/tasks")]
+        public async Task<IActionResult> UpdateAsync(Guid id, [FromBody] IList<UpdateColumnTaskPriorityDto> dtos)
         {
-            return Ok(await _columnService.CreateAsync(dto));
+            return Ok(await _columnService.UpdateAsync(id, dtos));
         }
     }
 }

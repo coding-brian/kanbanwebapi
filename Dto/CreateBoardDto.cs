@@ -1,4 +1,6 @@
-﻿namespace KanbanWebApi.Dto
+﻿using KanbanWebApi.Dto.Column;
+
+namespace KanbanWebApi.Dto
 {
     public class CreateBoardDto
     {
@@ -6,6 +8,6 @@
 
         public Guid? MemberId { get; set; }
 
-        public IList<CreatColumnDto> Columns { get; set; }
+        public IList<CreateColumnDto> Columns { get; set; }
     }
 }

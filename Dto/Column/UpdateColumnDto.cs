@@ -1,4 +1,4 @@
-﻿namespace KanbanWebApi.Dto
+﻿namespace KanbanWebApi.Dto.Column
 {
     public class UpdateColumnDto
     {

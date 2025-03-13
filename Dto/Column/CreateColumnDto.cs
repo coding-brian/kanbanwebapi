@@ -1,8 +1,7 @@
-﻿namespace KanbanWebApi.Dto
+﻿namespace KanbanWebApi.Dto.Column
 {
     public class CreateColumnDto
     {
-        public Guid BoardId { get; set; }
         public string Name { get; set; }
     }
 }

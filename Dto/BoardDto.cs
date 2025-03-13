@@ -1,4 +1,6 @@
-﻿namespace KanbanWebApi.Dto
+﻿using KanbanWebApi.Dto.Column;
+
+namespace KanbanWebApi.Dto
 {
     public class BoardDto : EntityDto
     {

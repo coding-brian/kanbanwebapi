@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Dapper;
 using KanbanWebApi.Dto;
+using KanbanWebApi.Dto.Column;
 using KanbanWebApi.Dto.SubTask;
 using KanbanWebApi.Dto.Task;
 using KanbanWebApi.Repository;
@@ -50,7 +51,8 @@ namespace KanbanWebApi.Service
                                                            st.id,st.title,st.is_completed,st.task_id
                                                     FROM board b
                                                     /**leftjoin**/
-                                                    /**where**/");
+                                                    /**where**/
+                                                    /**orderby**/");
 
             sqlBuilder.Where("b.id = @id", new { Id = id });
             sqlBuilder.Where("b.entity_status = true");
@@ -58,6 +60,7 @@ namespace KanbanWebApi.Service
             sqlBuilder.LeftJoin(@"(SELECT * FROM  ""column"" WHERE entity_status = true) c on b.id = c.board_id");
             sqlBuilder.LeftJoin(@"( SELECT * FROM  task WHERE entity_status = true) t on t.column_id = c.id");
             sqlBuilder.LeftJoin(@"( SELECT * FROM  sub_task  WHERE entity_status = true) st on st.task_id = t.id");
+            sqlBuilder.OrderBy(@"t.priority");
 
             var boardDic = new Dictionary<Guid, BoardDto>();
 
@@ -234,6 +237,49 @@ namespace KanbanWebApi.Service
                 transaction.Rollback();
 
                 return false;
+            }
+        }
+
+        public async Task<BoardDto> UpdateAsync(Guid id, IList<CreateColumnDto> dtos)
+        {
+            if (dtos == null || dtos.Count == 0) return null;
+
+            _connection.Open();
+            using var transaction = _connection.BeginTransaction();
+
+            try
+            {
+                var columns = new List<Column>();
+
+                foreach (var dto in dtos)
+                {
+                    var column = _mapper.Map<Column>(dto);
+                    column.Id = Guid.NewGuid();
+                    column.BoardId = id;
+                    column.IsActive = true;
+                    column.EntityStatus = true;
+                    column.CreationTime = DateTime.Now;
+
+                    columns.Add(column);
+                }
+
+                await _columnRepository.InsertAsync(_columnSqlGenerator.GenerateInsertSQL(), columns, transaction);
+
+                transaction.Commit();
+
+                var sqlBuilder = new SqlBuilder();
+
+                var template = sqlBuilder.AddTemplate(@"SELECT * FROM ""column"" /**where**/");
+
+                sqlBuilder.Where("id=ANY(@ids)", new { ids = columns.Select(x => x.Id).ToList() });
+
+                return await GetAsync(id);
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Error");
+                transaction.Rollback();
+                return null;
             }
         }
     }

@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using KanbanWebApi.Dto;
+using KanbanWebApi.Dto.Column;
 using KanbanWebApi.Dto.SubTask;
 using KanbanWebApi.Dto.Task;
 using KanbanWebApi.Tables;
@@ -14,7 +15,6 @@ namespace KanbanWebApi
             CreateMap<Board, BoardDto>();
             CreateMap<UpdateBoardDto, Board>();
 
-            CreateMap<CreatColumnDto, Column>();
             CreateMap<Column, ColumnDto>();
             CreateMap<UpdateColumnDto, Column>();
 

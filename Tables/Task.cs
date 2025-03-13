@@ -16,5 +16,8 @@ namespace KanbanWebApi.Tables
 
         [Column("description")]
         public string Description { get; set; }
+
+        [Column("priority")]
+        public int Priority { get; set; }
     }
 }

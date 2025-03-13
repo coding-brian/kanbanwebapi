@@ -1,6 +1,6 @@
 ﻿using KanbanWebApi.Dto.Task;
 
-namespace KanbanWebApi.Dto
+namespace KanbanWebApi.Dto.Column
 {
     public class ColumnDto : EntityDto
     {

@@ -1,4 +1,5 @@
 ﻿using KanbanWebApi.Dto;
+using KanbanWebApi.Dto.Column;
 using KanbanWebApi.Service;
 using Microsoft.AspNetCore.Mvc;
 
@@ -38,6 +39,12 @@ namespace KanbanWebApi.Controllers
         public async Task<IActionResult> DeleteAsync(Guid id)
         {
             return Ok(await _boardService.DeleteAsync(id));
+        }
+
+        [HttpPut("{id:guid}/columns")]
+        public async Task<IActionResult> UpdateAsync(Guid id, [FromBody] IList<CreateColumnDto> dtos)
+        {
+            return Ok(await _boardService.UpdateAsync(id, dtos));
         }
     }
 }
